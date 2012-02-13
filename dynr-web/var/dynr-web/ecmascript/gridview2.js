@@ -1,33 +1,35 @@
-//The gridViewApp function takes browser globals as invocation dependencies so we can
-//have accidental globals stick out in jslint.
-function gridViewApp(doc, win, settimeout, cleartimeout, newimg, newreq) {
-    'use strict';
+//The whole application is this single function that does not polute the global object in any way.
+//The arguments are used as injected dependencies, so that the function body should have no ambient dependencies.
+//* doc: The global document
+//* win: The global window
+//* settimeout: The setTimeout function.
+//* cleartimout: The clearTimeout function.
+//* newimg: Function for creating new 'Image' objects.
+//* newreq: Function for creating new 'XMLHttpRequest' objects.
+(function (doc, win, settimeout, cleartimeout, newimg, newreq) {
+    'use strict'; 
     //The gridview object makes up most of our simple application.
     var gridview = {
+        //First the data members.
         "gateways" : [],
         "receiveReq" : newreq(),
         "receiveReq2" : newreq(),
         "myTimer" : "",
         "reqseq" : 0,
-        //This method draws a canvas according to its current gateway state.
-        "displayGatewayState" : function (gateway) {
-            var canvasname = "canvas" + gateway.number,
-                canvas = doc.getElementById(canvasname),
-                context = canvas.getContext("2d"),
-                outercollor = "#aaaaaa",
-                peerscolor = "#bbbbbb",
-                fillcolor = "#cccccc",
-                img = newimg(),
-                img2 = newimg();
-            //The selected gateway gets a blue outer border rather than the default grey (window collor) outer border.
+        //Than the methods.
+        //
+        //The outer border is there to indicate if we selected this gateway ourselves.
+        "drawOuterBorder" : function (gateway, context) {
+            var outercollor = "#aaaaaa"; //If not selected, grey
             if (gateway.selected === true) {
-                outercollor = "#2e2efe";
+                outercollor = "#2e2efe";  //If sellected, blue.
             }
             context.fillStyle = outercollor;
             context.fillRect(0, 0, gateway.celsize, gateway.celsize);
-            //The inner border color is determined by the types of people that are using the gateway, and by
-            //the fact that we may use this gateway. Gateways we can't select will have a light gray outer border.
-            //Gateways that we can use that have no active users also have a light gray outer border.
+        },
+        //The inner border is there to indicate if others (and what others) are (also) currently actually using this gateway.
+        "drawInnerBorder" : function (gateway, context) {
+            var peerscolor = "#bbbbbb"; //Gateways that can't be selected and gateways without users have a grey inner border.
             if (gateway.groupaccess === true) {
                 if (gateway.groupcount > 0) {
                     //If there are only users of our group that currently use this gateway, the inner border is yellow.
@@ -50,7 +52,10 @@ function gridViewApp(doc, win, settimeout, cleartimeout, newimg, newreq) {
             }
             context.fillStyle = peerscolor;
             context.fillRect(5, 5, gateway.celsize - 10, gateway.celsize - 10);
-            //Any gateway that can't be selected has a grey fill collor.
+        },
+        //The fill color is there to indicate what groups of users are allowed to choose this gateway.
+        "drawFill" : function (gateway, context) {
+            var fillcolor = "#cccccc"; //If our group can't be used by our own group of users the fill color if grey.
             if (gateway.groupaccess === true) {
                 if (gateway.otheraccess === true) {
                     //If we share access to this gateway with other groups, than the fill collor is pink.
@@ -62,6 +67,9 @@ function gridViewApp(doc, win, settimeout, cleartimeout, newimg, newreq) {
             }
             context.fillStyle = fillcolor;
             context.fillRect(10, 10, gateway.celsize - 20, gateway.celsize - 20);
+        },
+        //Print the name of the gateway onto the canvas.
+        "printName" : function (gateway, context) {
             //Gateway names are written in black for gateways we can pick, and in grey for gateways we can't pick.
             context.fillStyle = "#aaaaaa";
             if (gateway.groupaccess === true) {
@@ -69,22 +77,32 @@ function gridViewApp(doc, win, settimeout, cleartimeout, newimg, newreq) {
             }
             context.font = "bold 16px sans-serif";
             context.fillText(gateway.name, 15, 26);
+        },
+        //Draw the gateway icon onto the canvas.
+        "drawIcon" : function (gateway, context) {
+            var img = newimg();
             //Only for gateways we can pick will we show the icon.
             if (gateway.groupaccess === true) {
                 img.src = gateway.image;
                 context.drawImage(img, 15, 15, gateway.celsize - 30, gateway.celsize - 30);
             }
+        },
+        //Print the number of users from our own group that have selected this gateway.
+        "printOurGroupCount" : function (gateway, context) {
             //For gateways with people from our group on it, display the number of users from our group in large green numbers.
             if (gateway.groupcount > 0) {
                 context.fillStyle = "green";
                 context.font = "bold 70px sans-serif";
                 if (gateway.groupcount > 9) {
+                    //Make double digit numbers fit better by starting 40 pixels more to the left.
                     context.fillText(gateway.groupcount, gateway.celsize - 100, gateway.celsize - 15);
                 } else {
                     context.fillText(gateway.groupcount, gateway.celsize - 60, gateway.celsize - 15);
                 }
             }
-            //For gateways with people from other groups on it, display the number of users from this group that are currently on it.
+        },
+        //For gateways with people from other groups on it, display the number of users from this group that are currently on it.
+        "printOtherGroupCount" : function (gateway, context) {
             //If we are allowed to pick this line, using red numbers, otherwise in grey numbers. These numbers are a bit smaller than
             //those for indicating people from our own group.
             context.fillStyle = "#aaaaaa";
@@ -95,13 +113,30 @@ function gridViewApp(doc, win, settimeout, cleartimeout, newimg, newreq) {
                 context.font = "bold 40px sans-serif";
                 context.fillText(gateway.othercount, 15, gateway.celsize - 15);
             }
-            //If the state of the gateway has been marked as waiting for a new status, display an hourglass with this gateway.
+        },
+        //When a canvas was clicked and we are waiting for the server to send an updated status, display an hourglass.
+        "drawActionState" : function (gateway, context) {
+            var img = newimg();
             if (gateway.waiting === true) {
                 if (gateway.groupaccess === true) {
-                    img2.src = "wait.png";
-                    context.drawImage(img2, gateway.celsize - 50, gateway.celsize -  50, 30, 50);
+                    img.src = "wait.png";
+                    context.drawImage(img, gateway.celsize - 50, gateway.celsize -  50, 30, 50);
                 }
             }
+        },
+        //This method draws a canvas according to its current gateway state.
+        "displayGatewayState" : function (gateway) {
+            var canvasname = "canvas" + gateway.number,
+                canvas = doc.getElementById(canvasname),
+                context = canvas.getContext("2d");
+            this.drawOuterBorder(gateway, context);
+            this.drawInnerBorder(gateway, context);
+            this.drawFill(gateway, context);
+            this.printName(gateway, context);
+            this.drawIcon(gateway, context);
+            this.printOurGroupCount(gateway, context);
+            this.printOtherGroupCount(gateway, context);
+            this.drawActionState(gateway, context);
         },
         //This is the AJAJ response handler for the status info request.
         "handleGatewaysStatus" : function () {
@@ -354,7 +389,12 @@ function gridViewApp(doc, win, settimeout, cleartimeout, newimg, newreq) {
     win.onresize = function () {
         gridview.updateScreen();
     };
-}
+}(document, window, setTimeout, clearTimeout, function () {
+    'use strict';
+    return new Image();
+}, function () {
+    'use strict';
+    return new XMLHttpRequest();
+}));
 
-gridViewApp(document, window, setTimeout, clearTimeout, function () {return new Image();}, function () {return new XMLHttpRequest();}  );
 
