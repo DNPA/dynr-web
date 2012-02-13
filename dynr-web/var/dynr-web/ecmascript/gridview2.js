@@ -6,7 +6,7 @@
 //* cleartimout: The clearTimeout function.
 //* newimg: Function for creating new 'Image' objects.
 //* newreq: Function for creating new 'XMLHttpRequest' objects.
-(function (doc, win, settimeout, cleartimeout, newimg, newreq) {
+(function (doc, win, settimeout, cleartimeout, newimg, newreq, JSON, Math) {
     'use strict';
     //The gridview object makes up most of our simple application.
     var gridview = {
@@ -385,6 +385,6 @@
 }, function () {
     'use strict';
     return new XMLHttpRequest();
-}));
+}, JSON, Math));
 
 
