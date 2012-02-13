@@ -7,7 +7,7 @@
 //* newimg: Function for creating new 'Image' objects.
 //* newreq: Function for creating new 'XMLHttpRequest' objects.
 (function (doc, win, settimeout, cleartimeout, newimg, newreq) {
-    'use strict'; 
+    'use strict';
     //The gridview object makes up most of our simple application.
     var gridview = {
         //First the data members.
@@ -18,125 +18,125 @@
         "reqseq" : 0,
         //Than the methods.
         //
-        //The outer border is there to indicate if we selected this gateway ourselves.
-        "drawOuterBorder" : function (gateway, context) {
-            var outercollor = "#aaaaaa"; //If not selected, grey
-            if (gateway.selected === true) {
-                outercollor = "#2e2efe";  //If sellected, blue.
-            }
-            context.fillStyle = outercollor;
-            context.fillRect(0, 0, gateway.celsize, gateway.celsize);
-        },
-        //The inner border is there to indicate if others (and what others) are (also) currently actually using this gateway.
-        "drawInnerBorder" : function (gateway, context) {
-            var peerscolor = "#bbbbbb"; //Gateways that can't be selected and gateways without users have a grey inner border.
-            if (gateway.groupaccess === true) {
-                if (gateway.groupcount > 0) {
-                    //If there are only users of our group that currently use this gateway, the inner border is yellow.
-                    peerscolor = "#ffff00";
-                    if (gateway.othercount > 0) {
-                        //If currenly this gateway has users of both our group and of other groups, the inner border is orange (yellow + redish)
-                        peerscolor = "#fe9a2e";
-                    } else {
-                        if ((gateway.groupcount === 1) && (gateway.selected === true)) {
-                            //If we are the only one who selected this gateway, the inner border is light blue.
-                            peerscolor = "#58daf5";
-                        }
-                    }
-                } else {
-                    if (gateway.othercount > 0) {
-                        //If the gateway currenly has only users from other groups, the inner border is redish.
-                        peerscolor = "#ff8080";
-                    }
-                }
-            }
-            context.fillStyle = peerscolor;
-            context.fillRect(5, 5, gateway.celsize - 10, gateway.celsize - 10);
-        },
-        //The fill color is there to indicate what groups of users are allowed to choose this gateway.
-        "drawFill" : function (gateway, context) {
-            var fillcolor = "#cccccc"; //If our group can't be used by our own group of users the fill color if grey.
-            if (gateway.groupaccess === true) {
-                if (gateway.otheraccess === true) {
-                    //If we share access to this gateway with other groups, than the fill collor is pink.
-                    fillcolor = "#f6cef6";
-                } else {
-                    //If this gateway is for our group exclusively, the fill collor id green.
-                    fillcolor = "#a9f5a9";
-                }
-            }
-            context.fillStyle = fillcolor;
-            context.fillRect(10, 10, gateway.celsize - 20, gateway.celsize - 20);
-        },
-        //Print the name of the gateway onto the canvas.
-        "printName" : function (gateway, context) {
-            //Gateway names are written in black for gateways we can pick, and in grey for gateways we can't pick.
-            context.fillStyle = "#aaaaaa";
-            if (gateway.groupaccess === true) {
-                context.fillStyle = "#000000";
-            }
-            context.font = "bold 16px sans-serif";
-            context.fillText(gateway.name, 15, 26);
-        },
-        //Draw the gateway icon onto the canvas.
-        "drawIcon" : function (gateway, context) {
-            var img = newimg();
-            //Only for gateways we can pick will we show the icon.
-            if (gateway.groupaccess === true) {
-                img.src = gateway.image;
-                context.drawImage(img, 15, 15, gateway.celsize - 30, gateway.celsize - 30);
-            }
-        },
-        //Print the number of users from our own group that have selected this gateway.
-        "printOurGroupCount" : function (gateway, context) {
-            //For gateways with people from our group on it, display the number of users from our group in large green numbers.
-            if (gateway.groupcount > 0) {
-                context.fillStyle = "green";
-                context.font = "bold 70px sans-serif";
-                if (gateway.groupcount > 9) {
-                    //Make double digit numbers fit better by starting 40 pixels more to the left.
-                    context.fillText(gateway.groupcount, gateway.celsize - 100, gateway.celsize - 15);
-                } else {
-                    context.fillText(gateway.groupcount, gateway.celsize - 60, gateway.celsize - 15);
-                }
-            }
-        },
-        //For gateways with people from other groups on it, display the number of users from this group that are currently on it.
-        "printOtherGroupCount" : function (gateway, context) {
-            //If we are allowed to pick this line, using red numbers, otherwise in grey numbers. These numbers are a bit smaller than
-            //those for indicating people from our own group.
-            context.fillStyle = "#aaaaaa";
-            if (gateway.othercount > 0) {
-                if (gateway.groupaccess === true) {
-                    context.fillStyle = "red";
-                }
-                context.font = "bold 40px sans-serif";
-                context.fillText(gateway.othercount, 15, gateway.celsize - 15);
-            }
-        },
-        //When a canvas was clicked and we are waiting for the server to send an updated status, display an hourglass.
-        "drawActionState" : function (gateway, context) {
-            var img = newimg();
-            if (gateway.waiting === true) {
-                if (gateway.groupaccess === true) {
-                    img.src = "wait.png";
-                    context.drawImage(img, gateway.celsize - 50, gateway.celsize -  50, 30, 50);
-                }
-            }
-        },
         //This method draws a canvas according to its current gateway state.
         "displayGatewayState" : function (gateway) {
             var canvasname = "canvas" + gateway.number,
                 canvas = doc.getElementById(canvasname),
                 context = canvas.getContext("2d");
-            this.drawOuterBorder(gateway, context);
-            this.drawInnerBorder(gateway, context);
-            this.drawFill(gateway, context);
-            this.printName(gateway, context);
-            this.drawIcon(gateway, context);
-            this.printOurGroupCount(gateway, context);
-            this.printOtherGroupCount(gateway, context);
-            this.drawActionState(gateway, context);
+            //The outer border is there to indicate if we selected this gateway ourselves.
+            function drawOuterBorder() {
+                var outercollor = "#aaaaaa"; //If not selected, grey
+                if (gateway.selected === true) {
+                    outercollor = "#2e2efe";  //If sellected, blue.
+                }
+                context.fillStyle = outercollor;
+                context.fillRect(0, 0, gateway.celsize, gateway.celsize);
+            }
+            //The inner border is there to indicate if others (and what others) are (also) currently actually using this gateway.
+            function drawInnerBorder() {
+                var peerscolor = "#bbbbbb"; //Gateways that can't be selected and gateways without users have a grey inner border.
+                if (gateway.groupaccess === true) {
+                    if (gateway.groupcount > 0) {
+                        //If there are only users of our group that currently use this gateway, the inner border is yellow.
+                        peerscolor = "#ffff00";
+                        if (gateway.othercount > 0) {
+                            //If currenly this gateway has users of both our group and of other groups, the inner border is orange (yellow + redish)
+                            peerscolor = "#fe9a2e";
+                        } else {
+                            if ((gateway.groupcount === 1) && (gateway.selected === true)) {
+                                //If we are the only one who selected this gateway, the inner border is light blue.
+                                peerscolor = "#58daf5";
+                            }
+                        }
+                    } else {
+                        if (gateway.othercount > 0) {
+                            //If the gateway currenly has only users from other groups, the inner border is redish.
+                            peerscolor = "#ff8080";
+                        }
+                    }
+                }
+                context.fillStyle = peerscolor;
+                context.fillRect(5, 5, gateway.celsize - 10, gateway.celsize - 10);
+            }
+            //The fill color is there to indicate what groups of users are allowed to choose this gateway.
+            function drawFill() {
+                var fillcolor = "#cccccc"; //If our group can't be used by our own group of users the fill color if grey.
+                if (gateway.groupaccess === true) {
+                    if (gateway.otheraccess === true) {
+                        //If we share access to this gateway with other groups, than the fill collor is pink.
+                        fillcolor = "#f6cef6";
+                    } else {
+                        //If this gateway is for our group exclusively, the fill collor id green.
+                        fillcolor = "#a9f5a9";
+                    }
+                }
+                context.fillStyle = fillcolor;
+                context.fillRect(10, 10, gateway.celsize - 20, gateway.celsize - 20);
+            }
+            //Print the name of the gateway onto the canvas.
+            function printName() {
+                //Gateway names are written in black for gateways we can pick, and in grey for gateways we can't pick.
+                context.fillStyle = "#aaaaaa";
+                if (gateway.groupaccess === true) {
+                    context.fillStyle = "#000000";
+                }
+                context.font = "bold 16px sans-serif";
+                context.fillText(gateway.name, 15, 26);
+            }
+            //Draw the gateway icon onto the canvas.
+            function drawIcon() {
+                var img = newimg();
+                //Only for gateways we can pick will we show the icon.
+                if (gateway.groupaccess === true) {
+                    img.src = gateway.image;
+                    context.drawImage(img, 15, 15, gateway.celsize - 30, gateway.celsize - 30);
+                }
+            }
+            //Print the number of users from our own group that have selected this gateway.
+            function printOurGroupCount() {
+                //For gateways with people from our group on it, display the number of users from our group in large green numbers.
+                if (gateway.groupcount > 0) {
+                    context.fillStyle = "green";
+                    context.font = "bold 70px sans-serif";
+                    if (gateway.groupcount > 9) {
+                        //Make double digit numbers fit better by starting 40 pixels more to the left.
+                        context.fillText(gateway.groupcount, gateway.celsize - 100, gateway.celsize - 15);
+                    } else {
+                        context.fillText(gateway.groupcount, gateway.celsize - 60, gateway.celsize - 15);
+                    }
+                }
+            }
+            //For gateways with people from other groups on it, display the number of users from this group that are currently on it.
+            function printOtherGroupCount() {
+                //If we are allowed to pick this line, using red numbers, otherwise in grey numbers. These numbers are a bit smaller than
+                //those for indicating people from our own group.
+                context.fillStyle = "#aaaaaa";
+                if (gateway.othercount > 0) {
+                    if (gateway.groupaccess === true) {
+                        context.fillStyle = "red";
+                    }
+                    context.font = "bold 40px sans-serif";
+                    context.fillText(gateway.othercount, 15, gateway.celsize - 15);
+                }
+            }
+            //When a canvas was clicked and we are waiting for the server to send an updated status, display an hourglass.
+            function drawActionState() {
+                var img = newimg();
+                if (gateway.waiting === true) {
+                    if (gateway.groupaccess === true) {
+                        img.src = "wait.png";
+                        context.drawImage(img, gateway.celsize - 50, gateway.celsize -  50, 30, 50);
+                    }
+                }
+            }
+            drawOuterBorder();
+            drawInnerBorder();
+            drawFill();
+            printName();
+            drawIcon();
+            printOurGroupCount();
+            printOtherGroupCount();
+            drawActionState();
         },
         //This is the AJAJ response handler for the status info request.
         "handleGatewaysStatus" : function () {
@@ -230,32 +230,21 @@
             doc.getElementById('docbody').appendChild(newdiv);
             newcanvas.addEventListener("click", function () {gv.selectGateway(i); }, false);
         },
-        //Update the location and size of a given canvas at index i.
-        "updateCanvas" : function (x, y, s, i) {
-            var divid = "div" + i,
-                style = "position: absolute; top: " + y + "px; left: " + x + "px;", //The position.
-                canvasdiv = doc.getElementById(divid),
-                canvasid = "canvas" + i,
-                thecanvas = doc.getElementById(canvasid);
-            canvasdiv.setAttribute('style', style);
-            thecanvas.setAttribute('width', s); 
-            thecanvas.setAttribute('height', s);
-        },
-        //This method returns the maximum number of cells of a given size into our browser window.
-        "maxCells" : function (xrange, yrange, celsize) {
-            var xcels = Math.floor(xrange / celsize),
-                ycels = Math.floor(yrange / celsize),
-                rval =  xcels * ycels;
-            return rval;
-        },
         //The celsize is the maximum square size that allows us to fit 'cels' cels into our browser window.
         "getCellSize" : function (cels) {
+            //This method returns the maximum number of cells of a given size into our browser window.
+            function maxCells(xrange, yrange, celsize) {
+                var xcels = Math.floor(xrange / celsize),
+                    ycels = Math.floor(yrange / celsize),
+                    rval =  xcels * ycels;
+                return rval;
+            }
             var xrange = win.innerWidth,
                 yrange = win.innerHeight,
                 celsize = Math.floor(Math.sqrt(xrange * yrange / cels)); //Upper bound for the celsize, this is unlikely to fit.
             while (celsize > 84) { //If things get to small we won't be able to display all info, lets set a lower bound for celsize.
                 //Test if the proposed celsize will allow us to fit all cels into our browser window.
-                if (this.maxCells(xrange, yrange, celsize) >= cels) {
+                if (maxCells(xrange, yrange, celsize) >= cels) {
                     return celsize - 4; //If it does, lets give back something a bit smaller so we get nice margins.
                 }
                 //decrement the proposed celsize and try again if it fits.
@@ -264,39 +253,10 @@
             return 80;
         },
         //The number of columns is detemined by the number of cells of celsize that fit into our browswe windows horizontally.
-        "getColCount" : function (celsize) {
-            var xrange = win.innerWidth;
-            return Math.floor(xrange / celsize);
-        },
         //The number of rows is determined from the total number of cells and the number of columns.
-        "getRowCount" : function (cels, colcount) {
-            return Math.ceil(cels / colcount);
-        },
         //Initialize our browser windof for the first time.
         "initScreen" : function () {
-            var cels = this.gateways.length,
-                celsize = this.getCellSize(cels), //Get the max celsize that fits our window.
-                colcount = this.getColCount(celsize), //Get the number of columns we should use.
-                rowcount = this.getRowCount(cels, colcount), //Get the number of rows we should use.
-                //Try to somewhat center our matrix on our page
-                xoffset = Math.floor((win.innerWidth - (celsize * colcount)) / 2),
-                yoffset = Math.floor((win.innerHeight - (celsize * rowcount)) / 2),
-                row = 0,
-                canvasno = 0,
-                col = 0;
-            //Determine the proper cell for each existing canvas.
-            for (row = 0; row < rowcount; row = row + 1) {
-                for (col = 0; col < colcount; col = col + 1) {
-                    canvasno = canvasno + 1;
-                    if (canvasno <= cels) {
-                        //Create a new canvas of the proper size and place it at the right location on the screen.
-                        this.addCanvas(col * celsize + xoffset, row * celsize + yoffset, celsize, canvasno);
-                        //Display the proper info in our new canvas.
-                        this.displayGatewayState(this.gateways[canvasno - 1]);
-                    }
-                }
-            }
-            return celsize;
+            return this.doScreen(true);
         },
         //This method parses the 'nojs' div section in the original dom tree.
         "parseNoJsSection" : function (nojsdiv) {
@@ -337,13 +297,31 @@
             }
             return;
         },
-        //This method gets called when the browser window gets resized by the user.
-        //Its a lot like initScreen, but the difs and canvasses already exist, we only need to rescale and reposition them.
-        "updateScreen" : function () {
+        "doScreen" : function (create) {
+            //Update the location and size of a given canvas at index i.
+            function updateCanvas(x, y, s, i) {
+                var divid = "div" + i,
+                    style = "position: absolute; top: " + y + "px; left: " + x + "px;", //The position.
+                    canvasdiv = doc.getElementById(divid),
+                    canvasid = "canvas" + i,
+                    thecanvas = doc.getElementById(canvasid);
+                canvasdiv.setAttribute('style', style);
+                thecanvas.setAttribute('width', s);
+                thecanvas.setAttribute('height', s);
+            }
+            //The number of collumns
+            function getColCount(celsize) {
+                var xrange = win.innerWidth;
+                return Math.floor(xrange / celsize);
+            }
+            //The number of rows is determined from the total number of cells and the number of columns.
+            function getRowCount(cels, colcount) {
+                return Math.ceil(cels / colcount);
+            }
             var cels = this.gateways.length,
                 celsize = this.getCellSize(cels), //Get the max celsize that fits our window.
-                colcount = this.getColCount(celsize), //Get the number of columns we should use.
-                rowcount = this.getRowCount(cels, colcount), //Get the number of rows we should use.
+                colcount = getColCount(celsize), //Get the number of columns we should use.
+                rowcount = getRowCount(cels, colcount), //Get the number of rows we should use.
                 //Try to somewhat center our matrix on our page.
                 xoffset = Math.floor((win.innerWidth - (celsize * colcount)) / 2),
                 yoffset = Math.floor((win.innerHeight - (celsize * rowcount)) / 2),
@@ -355,16 +333,28 @@
                 for (col = 0; col < colcount; col = col + 1) {
                     canvasno = canvasno + 1;
                     if (canvasno <= cels) {
-                        //Update our canvas celsize in our gateways array.
-                        this.gateways[canvasno - 1].celsize = celsize;
-                        //Move our canvas to the right place.
-                        this.updateCanvas(col * celsize + xoffset, row * celsize + yoffset, celsize, canvasno);
-                        //Redraw everything on our moved and resized canvas.
-                        this.displayGatewayState(this.gateways[canvasno - 1]);
+                        if (create === true) {
+                            //Create a new canvas of the proper size and place it at the right location on the screen.
+                            this.addCanvas(col * celsize + xoffset, row * celsize + yoffset, celsize, canvasno);
+                            //Display the proper info in our new canvas.
+                            this.displayGatewayState(this.gateways[canvasno - 1]);
+                        } else {
+                            //Update our canvas celsize in our gateways array.
+                            this.gateways[canvasno - 1].celsize = celsize;
+                            //Move our canvas to the right place.
+                            updateCanvas(col * celsize + xoffset, row * celsize + yoffset, celsize, canvasno);
+                            //Redraw everything on our moved and resized canvas.
+                            this.displayGatewayState(this.gateways[canvasno - 1]);
+                        }
                     }
                 }
             }
             return;
+        },
+        //This method gets called when the browser window gets resized by the user.
+        //Its a lot like initScreen, but the difs and canvasses already exist, we only need to rescale and reposition them.
+        "updateScreen" : function () {
+            return this.doScreen(false);
         },
         //Method called once at the start of the application.
         "onload" : function () {
